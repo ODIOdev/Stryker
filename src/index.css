@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+
+  /* OKX dark base */
+  --color-okx-bg: #000000;
+  --color-okx-card: #141414;
+  --color-okx-elevated: #1c1c1c;
+  --color-okx-hover: #242424;
+  --color-okx-border: #2a2a2a;
+  --color-okx-muted: #6b6b6b;
+  --color-okx-subtle: #9a9a9a;
+  --color-okx-text: #ffffff;
+
+  /* Brand — use sparingly (logo, A-grade, primary CTA) */
+  --color-okx-lime: #bcff2f;
+  --color-okx-lime-dim: #9ed929;
+  --color-okx-lime-glow: #bcff2f40;
+  --color-stryke: #bcff2f;
+
+  /* Extended palette */
+  --color-okx-cyan: #4da3ff;
+  --color-okx-cyan-dim: #3a8ae8;
+  --color-okx-teal: #2dd4bf;
+  --color-okx-teal-dim: #22b8a6;
+  --color-okx-violet: #9b7ede;
+  --color-okx-amber: #e8b84a;
+  --color-okx-rose: #f472b6;
+
+  --color-up: #2dd4bf;
+  --color-down: #ff5b5b;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-okx-bg);
+  color: var(--color-okx-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-okx-border);
+  border-radius: 3px;
+}
+
+.chart-glow-line {
+  filter: drop-shadow(0 0 10px #bcff2f30);
+}
