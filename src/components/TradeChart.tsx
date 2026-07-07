@@ -15,6 +15,9 @@ import {
   type Timeframe,
 } from '../data/chartData'
 import type { ChartMode } from '../App'
+import type { TradeRating } from '../data/confluence'
+import type { TradeBias } from '../lib/confluenceScoring'
+import { SetupScoreCard } from './SetupScoreCard'
 import { TimeframePills } from './ui/TimeframePills'
 import { SegmentedControl } from './ui/SegmentedControl'
 
@@ -24,6 +27,15 @@ interface TradeChartProps {
   onModeChange: (mode: ChartMode) => void
   timeframe: Timeframe
   onTimeframeChange: (tf: Timeframe) => void
+  score: number
+  scoreCeiling: number
+  rating: TradeRating
+  mainTradeBias: TradeBias | null
+  qualityPct: number
+  syncPct: number
+  confidencePct: number
+  alignedCount: number
+  activeCount: number
 }
 
 const LIME = '#bcff2f'
@@ -70,12 +82,23 @@ const chartTypeOptions = [
   { value: 'candlestick' as const, label: 'Candles' },
 ]
 
+const CHART_MIN_HEIGHT = 200
+
 export function TradeChart({
   ticker,
   mode,
   onModeChange,
   timeframe,
   onTimeframeChange,
+  score,
+  scoreCeiling,
+  rating,
+  mainTradeBias,
+  qualityPct,
+  syncPct,
+  confidencePct,
+  alignedCount,
+  activeCount,
 }: TradeChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -97,13 +120,13 @@ export function TradeChart({
     const chart = createChart(containerRef.current, {
       ...chartOptions,
       width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
+      height: Math.max(containerRef.current.clientHeight, CHART_MIN_HEIGHT),
     })
     chartRef.current = chart
 
     const ro = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect
-      chart.applyOptions({ width, height })
+      chart.applyOptions({ width, height: Math.max(height, CHART_MIN_HEIGHT) })
     })
     ro.observe(containerRef.current)
 
@@ -138,24 +161,33 @@ export function TradeChart({
   }, [mode, candles, lineData])
 
   return (
-    <div className="flex flex-col">
-      <div className="px-4 pt-4 pb-1 sm:px-5">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between gap-4 border-b border-okx-border/60 px-4 py-2.5 sm:px-5">
+        <TimeframePills value={timeframe} onChange={onTimeframeChange} />
+        <SegmentedControl
+          options={chartTypeOptions}
+          value={mode}
+          onChange={onModeChange}
+          layoutId="chart-type"
+        />
+      </div>
+
+      <div className="shrink-0 px-4 pt-3 pb-1 sm:px-5">
         <motion.div
           key={ticker.symbol + stats.price}
           initial={{ opacity: 0.6 }}
           animate={{ opacity: 1 }}
-          className="flex flex-wrap items-end justify-between gap-4"
         >
-          <div>
-            <p className="text-sm text-okx-muted">
-              {ticker.name}{' '}
-              <span className="text-okx-subtle">{ticker.symbol.split('/')[0]}</span>
-            </p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
+          <p className="text-sm text-okx-muted">
+            {ticker.name}{' '}
+            <span className="text-okx-subtle">{ticker.symbol.split('/')[0]}</span>
+          </p>
+          <div className="mt-1 flex items-baseline gap-2">
+            <p className="text-2xl font-semibold tracking-tight tabular-nums">
               {formatPrice(stats.price, ticker.symbol)}
             </p>
             <p
-              className={`mt-1 text-sm font-medium tabular-nums ${
+              className={`text-sm font-medium tabular-nums ${
                 stats.isUp ? 'text-okx-lime' : 'text-down'
               }`}
             >
@@ -163,23 +195,25 @@ export function TradeChart({
               {stats.change.toFixed(2)}%
             </p>
           </div>
-          <SegmentedControl
-            options={chartTypeOptions}
-            value={mode}
-            onChange={onModeChange}
-            layoutId="chart-type"
-          />
         </motion.div>
       </div>
 
       <div
         ref={containerRef}
-        className={`h-[260px] shrink-0 px-1 sm:h-[280px] ${mode === 'line' ? 'chart-glow-line' : ''}`}
+        className={`min-h-0 flex-1 px-1 ${mode === 'line' ? 'chart-glow-line' : ''}`}
       />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-okx-border/60 px-4 py-3 sm:px-5">
-        <TimeframePills value={timeframe} onChange={onTimeframeChange} />
-      </div>
+      <SetupScoreCard
+          score={score}
+          maxScore={scoreCeiling}
+          rating={rating}
+          mainTradeBias={mainTradeBias}
+          qualityPct={qualityPct}
+          syncPct={syncPct}
+          confidencePct={confidencePct}
+          alignedCount={alignedCount}
+          activeCount={activeCount}
+      />
     </div>
   )
 }

@@ -45,9 +45,112 @@ body,
 
 body {
   font-family: var(--font-sans);
-  background: var(--color-okx-bg);
+  background: #020202;
   color: var(--color-okx-text);
   -webkit-font-smoothing: antialiased;
+}
+
+button:not(:disabled),
+[type='button']:not(:disabled),
+[type='submit']:not(:disabled),
+[type='reset']:not(:disabled),
+[role='button']:not([aria-disabled='true']),
+[role='tab'],
+[role='menuitem'],
+[role='option'],
+[role='switch'],
+a[href],
+label[for],
+select:not(:disabled),
+summary,
+input[type='range'],
+input[type='checkbox'],
+input[type='radio'] {
+  cursor: pointer;
+}
+
+input[type='text'],
+input[type='search'],
+input[type='email'],
+input[type='password'],
+input[type='url'],
+input[type='tel'],
+input[type='number'],
+textarea,
+[contenteditable='true'] {
+  cursor: text;
+}
+
+/* Full-page backdrop behind the dashboard card */
+.app-backdrop {
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 10%, rgba(188, 255, 47, 0.09), transparent 58%),
+    radial-gradient(ellipse 60% 50% at 88% 18%, rgba(77, 163, 255, 0.08), transparent 55%),
+    radial-gradient(ellipse 55% 45% at 50% 100%, rgba(155, 126, 222, 0.06), transparent 52%),
+    radial-gradient(ellipse 40% 35% at 72% 82%, rgba(45, 212, 191, 0.05), transparent 50%),
+    linear-gradient(180deg, #080808 0%, #030303 45%, #010101 100%);
+}
+
+.app-backdrop::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 95% 90% at 50% 45%, black 30%, transparent 100%);
+}
+
+.app-backdrop::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+  background-size: 8px 8px;
+  mask-image: radial-gradient(ellipse 90% 85% at 50% 50%, black 25%, transparent 100%);
+  opacity: 0.7;
+}
+
+.app-backdrop > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-stage {
+  position: relative;
+  isolation: isolate;
+  flex-shrink: 0;
+}
+
+.dashboard-brand-mark {
+  position: absolute;
+  top: -100px;
+  left: -140px;
+  z-index: 0;
+  width: 560px;
+  height: 560px;
+  pointer-events: none;
+  color: #bcff2f;
+  opacity: 0.14;
+  filter:
+    drop-shadow(0 0 60px rgba(188, 255, 47, 0.45))
+    drop-shadow(0 0 120px rgba(188, 255, 47, 0.25));
+}
+
+.dashboard-brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 ::-webkit-scrollbar {
@@ -59,6 +162,342 @@ body {
   border-radius: 3px;
 }
 
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+.prem-discount-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 2rem;
+}
+
+.prem-discount-track__gradient {
+  pointer-events: none;
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  height: 0.625rem;
+  border-radius: 9999px;
+  background: linear-gradient(to right, #2dd4bf 0%, #d4c04a 50%, #ff5b5b 100%);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.prem-discount-track__tick {
+  pointer-events: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 1;
+  height: 0.875rem;
+  width: 2px;
+  transform: translate(-50%, -50%);
+  border-radius: 1px;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.prem-discount-slider {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 2rem;
+  margin: 0;
+  cursor: pointer;
+  appearance: none;
+  background: transparent;
+}
+
+.prem-discount-slider:focus {
+  outline: none;
+}
+
+.prem-discount-slider:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 3px rgba(188, 255, 47, 0.35),
+    0 0 10px rgba(0, 0, 0, 0.35);
+}
+
+.prem-discount-slider::-webkit-slider-runnable-track {
+  height: 0.625rem;
+  background: transparent;
+}
+
+.prem-discount-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: -0.25rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  background: var(--prem-discount-thumb, #d4c04a);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+  transition: transform 120ms ease-out;
+}
+
+.prem-discount-slider:active::-webkit-slider-thumb {
+  transform: scale(1.08);
+}
+
+.prem-discount-slider::-moz-range-track {
+  height: 0.625rem;
+  background: transparent;
+  border: none;
+}
+
+.prem-discount-slider::-moz-range-thumb {
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  background: var(--prem-discount-thumb, #d4c04a);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.confluence-scroll-mask {
+  position: relative;
+  min-height: 0;
+}
+
+.confluence-scroll-mask__viewport {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 14px,
+    black calc(100% - 22px),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 14px,
+    black calc(100% - 22px),
+    transparent 100%
+  );
+}
+
 .chart-glow-line {
   filter: drop-shadow(0 0 10px #bcff2f30);
+}
+
+/* Stat cards — glass tabs with hover glow */
+.stat-glass-card-wrap {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  padding: 6px;
+  margin: -6px;
+  cursor: pointer;
+}
+
+.stat-glass-card-wrap .stat-glass-card__glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 1rem;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(
+    ellipse 90% 80% at 50% 50%,
+    rgba(188, 255, 47, 0.28) 0%,
+    rgba(188, 255, 47, 0.1) 42%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  transition: opacity 0.3s ease;
+}
+
+.stat-glass-card-wrap:hover .stat-glass-card__glow,
+.stat-glass-card-wrap:focus-within .stat-glass-card__glow {
+  opacity: 1;
+}
+
+.stat-glass-card {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(0, 0, 0, 0.2) 100%
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.45),
+    0 4px 14px rgba(0, 0, 0, 0.38);
+  transition:
+    box-shadow 0.25s ease,
+    border-color 0.25s ease,
+    transform 0.2s ease;
+}
+
+.stat-glass-card-wrap:hover .stat-glass-card,
+.stat-glass-card-wrap:focus-within .stat-glass-card {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.48),
+    0 8px 22px rgba(0, 0, 0, 0.42);
+}
+
+.stat-glass-card__pattern {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.45;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 10px 10px;
+  mask-image: radial-gradient(ellipse 95% 90% at 50% 35%, black 25%, transparent 100%);
+}
+
+.stat-glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 24%,
+    transparent 50%
+  );
+}
+
+.stat-glass-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -100%;
+  z-index: 3;
+  width: 50%;
+  height: 200%;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  transform: rotate(18deg);
+  opacity: 0;
+  transition:
+    left 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease;
+}
+
+.stat-glass-card-wrap:hover .stat-glass-card::after,
+.stat-glass-card-wrap:focus-within .stat-glass-card::after {
+  left: 120%;
+  opacity: 1;
+}
+
+.stat-glass-card__bezel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 3px 8px rgba(0, 0, 0, 0.28);
+}
+
+.stat-glass-card__accent {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.25s ease;
+}
+
+.stat-glass-card-wrap:hover .stat-glass-card .stat-glass-card__accent,
+.stat-glass-card-wrap:focus-within .stat-glass-card .stat-glass-card__accent {
+  opacity: 0.75;
+}
+
+.stat-glass-card__content {
+  position: relative;
+  z-index: 2;
+}
+
+/* Fixed-size dashboard frame — consistent across every page */
+.dashboard-shell {
+  width: 1440px;
+  height: 969px;
+  flex-shrink: 0;
+  position: relative;
+  isolation: isolate;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(188, 255, 47, 0.07), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 0%, rgba(77, 163, 255, 0.05), transparent 50%),
+    radial-gradient(ellipse 50% 35% at 0% 100%, rgba(155, 126, 222, 0.04), transparent 45%),
+    linear-gradient(165deg, #0a0a0a 0%, #050505 42%, #000000 100%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 0 1px rgba(188, 255, 47, 0.04),
+    0 24px 80px rgba(0, 0, 0, 0.72),
+    0 8px 32px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dashboard-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 20%, transparent 75%);
+  opacity: 0.35;
+}
+
+.dashboard-shell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.35);
+}
+
+.dashboard-shell > * {
+  position: relative;
+  z-index: 1;
 }

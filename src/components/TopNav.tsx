@@ -1,18 +1,95 @@
+import { useEffect, useRef, useState } from 'react'
 import { Bell, ChevronDown, Menu, Search, Zap } from 'lucide-react'
 import { TickerSearch } from './TickerSearch'
 import type { Ticker } from '../data/tickers'
 
-const NAV = ['Markets', 'Trade', 'Scoreboard', 'Portfolio']
+const NAV = ['Scoreboard', 'Markets', 'Trade', 'Portfolio']
+
+export const DASHBOARD_VIEWS = ['Chart', 'Scoreboard', 'Performance', 'Journal'] as const
+export type DashboardView = (typeof DASHBOARD_VIEWS)[number]
 
 interface TopNavProps {
   ticker: Ticker
   onTickerSelect: (t: Ticker) => void
+  activeView: DashboardView
+  onViewChange: (view: DashboardView) => void
 }
 
-export function TopNav({ ticker, onTickerSelect }: TopNavProps) {
+function ScoreboardNavDropdown({
+  activeView,
+  onViewChange,
+}: {
+  activeView: DashboardView
+  onViewChange: (view: DashboardView) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
   return (
-    <header className="sticky top-0 z-50 border-b border-okx-border/80 bg-okx-bg">
-      <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-3 sm:gap-6 sm:px-6">
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-haspopup="menu"
+        onClick={() => setOpen((prev) => !prev)}
+        className={`flex items-center gap-0.5 rounded-lg px-3 py-2 text-sm transition-colors ${
+          open
+            ? 'bg-okx-card text-okx-text'
+            : 'text-okx-subtle hover:bg-okx-card hover:text-okx-text'
+        }`}
+      >
+        {activeView}
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-okx-muted transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          className="absolute top-full left-0 z-50 mt-1.5 min-w-[168px] overflow-hidden rounded-xl border border-okx-border bg-okx-card py-1 shadow-2xl"
+        >
+          {DASHBOARD_VIEWS.map((view) => (
+            <button
+              key={view}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onViewChange(view)
+                setOpen(false)
+              }}
+              className={`flex w-full items-center justify-between px-3.5 py-2 text-left text-sm transition-colors ${
+                activeView === view
+                  ? 'bg-okx-lime/10 text-okx-lime'
+                  : 'text-okx-subtle hover:bg-okx-hover hover:text-okx-text'
+              }`}
+            >
+              {view}
+              {activeView === view && (
+                <span className="h-1.5 w-1.5 rounded-full bg-okx-lime" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+export function TopNav({ ticker, onTickerSelect, activeView, onViewChange }: TopNavProps) {
+  return (
+    <header className="shrink-0 border-b border-okx-border/80 bg-okx-bg">
+      <div className="flex w-full items-center gap-3 px-6 py-3 sm:gap-6">
         <button
           type="button"
           className="flex h-9 w-9 items-center justify-center rounded-lg text-okx-muted hover:bg-okx-card lg:hidden"
@@ -29,16 +106,24 @@ export function TopNav({ ticker, onTickerSelect }: TopNavProps) {
         </a>
 
         <nav className="hidden items-center gap-1 lg:flex">
-          {NAV.map((item) => (
-            <button
-              key={item}
-              type="button"
-              className="flex items-center gap-0.5 rounded-lg px-3 py-2 text-sm text-okx-subtle transition-colors hover:bg-okx-card hover:text-okx-text"
-            >
-              {item}
-              <ChevronDown className="h-3.5 w-3.5 text-okx-muted" />
-            </button>
-          ))}
+          {NAV.map((item) =>
+            item === 'Scoreboard' ? (
+              <ScoreboardNavDropdown
+                key={item}
+                activeView={activeView}
+                onViewChange={onViewChange}
+              />
+            ) : (
+              <button
+                key={item}
+                type="button"
+                className="flex items-center gap-0.5 rounded-lg px-3 py-2 text-sm text-okx-subtle transition-colors hover:bg-okx-card hover:text-okx-text"
+              >
+                {item}
+                <ChevronDown className="h-3.5 w-3.5 text-okx-muted" />
+              </button>
+            )
+          )}
         </nav>
 
         <div className="ml-auto hidden max-w-[220px] flex-1 sm:block lg:max-w-[280px]">

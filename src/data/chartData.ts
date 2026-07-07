@@ -1,15 +1,47 @@
 import type { CandlestickData, LineData, Time } from 'lightweight-charts'
 import type { Ticker } from './tickers'
 
-export type Timeframe = '1H' | '1D' | '1W' | '1M' | '1Y'
+export type Timeframe = '5m' | '15m' | '30m' | '1h' | '4h' | '1D'
 
 export const TIMEFRAMES: { id: Timeframe; label: string; count: number; interval: number }[] = [
-  { id: '1H', label: '1h', count: 120, interval: 3600 },
-  { id: '1D', label: '24h', count: 90, interval: 86400 },
-  { id: '1W', label: '1W', count: 52, interval: 604800 },
-  { id: '1M', label: '1M', count: 24, interval: 2592000 },
-  { id: '1Y', label: '1Y', count: 12, interval: 25920000 },
+  { id: '5m', label: '5m', count: 120, interval: 300 },
+  { id: '15m', label: '15m', count: 96, interval: 900 },
+  { id: '30m', label: '30m', count: 96, interval: 1800 },
+  { id: '1h', label: '1h', count: 72, interval: 3600 },
+  { id: '4h', label: '4h', count: 90, interval: 14400 },
+  { id: '1D', label: '1D', count: 90, interval: 86400 },
 ]
+
+const INTERVAL_WEIGHTS: Record<Timeframe, number> = {
+  '5m': 1,
+  '15m': 2,
+  '30m': 3,
+  '1h': 4,
+  '4h': 5,
+  '1D': 6,
+}
+
+/** Max score achievable at each chart interval (scales up from 5m → 1D). */
+const TIMEFRAME_SCORE_CEILING: Record<Timeframe, number> = {
+  '5m': 30,
+  '15m': 45,
+  '30m': 58,
+  '1h': 70,
+  '4h': 85,
+  '1D': 100,
+}
+
+export function intervalWeight(tf: Timeframe): number {
+  return INTERVAL_WEIGHTS[tf]
+}
+
+export function timeframeScoreCeiling(tf: Timeframe): number {
+  return TIMEFRAME_SCORE_CEILING[tf]
+}
+
+export function timeframeLabel(tf: Timeframe): string {
+  return TIMEFRAMES.find((t) => t.id === tf)?.label ?? tf
+}
 
 function seededRandom(seed: number) {
   let s = seed
@@ -31,9 +63,9 @@ function hashSymbol(symbol: string, tf: string): number {
 
 export function generateCandles(
   ticker: Ticker,
-  timeframe: Timeframe = '1D'
+  timeframe: Timeframe = '1h'
 ): CandlestickData<Time>[] {
-  const config = TIMEFRAMES.find((t) => t.id === timeframe) ?? TIMEFRAMES[1]
+  const config = TIMEFRAMES.find((t) => t.id === timeframe) ?? TIMEFRAMES[3]
   const rand = seededRandom(hashSymbol(ticker.symbol, timeframe))
   const candles: CandlestickData<Time>[] = []
   let price = ticker.basePrice * (0.92 + rand() * 0.16)
