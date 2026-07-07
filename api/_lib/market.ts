@@ -20,6 +20,14 @@ export interface Quote {
   source: 'finnhub' | 'coingecko' | 'yahoo' | 'synthetic'
 }
 
+interface YahooMeta {
+  regularMarketPrice?: number
+  previousClose?: number
+  chartPreviousClose?: number
+  regularMarketDayHigh?: number
+  regularMarketDayLow?: number
+}
+
 const TIMEFRAME_CONFIG: Record<
   string,
   { resolution: string; count: number; intervalSec: number; aggregate?: number }
@@ -39,6 +47,8 @@ const COINGECKO_IDS: Record<string, string> = {
   BNB: 'binancecoin',
   XRP: 'ripple',
   DOGE: 'dogecoin',
+  XAU: 'tether-gold',
+  XAG: 'kinesis-silver',
 }
 
 export function resolveMarketSymbol(symbol: string, assetClass?: AssetClass): {
@@ -55,16 +65,26 @@ export function resolveMarketSymbol(symbol: string, assetClass?: AssetClass): {
       const q = quote === 'USD' ? 'USDT' : quote
       return {
         finnhub: `BINANCE:${base}${q}`,
-        yahoo: `${base}-${quote}`,
+        yahoo: `${base}-USD`,
         coingeckoId: COINGECKO_IDS[base],
         assetClass: 'crypto',
       }
     }
     if (base === 'XAU') {
-      return { finnhub: `OANDA:${base}_${quote}`, yahoo: 'GC=F', assetClass: 'metal' }
+      return {
+        finnhub: `OANDA:${base}_${quote}`,
+        yahoo: 'GC=F',
+        coingeckoId: COINGECKO_IDS.XAU,
+        assetClass: 'metal',
+      }
     }
     if (base === 'XAG') {
-      return { finnhub: `OANDA:${base}_${quote}`, yahoo: 'SI=F', assetClass: 'metal' }
+      return {
+        finnhub: `OANDA:${base}_${quote}`,
+        yahoo: 'SI=F',
+        coingeckoId: COINGECKO_IDS.XAG,
+        assetClass: 'metal',
+      }
     }
     return {
       finnhub: `OANDA:${base}_${quote}`,
@@ -96,6 +116,52 @@ function aggregateBars(bars: Bar[], factor: number): Bar[] {
       close: chunk[chunk.length - 1].close,
       volume: chunk.reduce((s, b) => s + (b.volume ?? 0), 0),
     })
+  }
+  return out
+}
+
+function quoteFromYahooMeta(meta: YahooMeta, bars: Bar[]): Quote | null {
+  const price = meta.regularMarketPrice
+  if (!price || price <= 0) return null
+
+  const prev = meta.previousClose ?? meta.chartPreviousClose ?? bars[bars.length - 1]?.close ?? price
+  const change = price - prev
+  const changePercent = prev ? (change / prev) * 100 : 0
+
+  return {
+    price,
+    change,
+    changePercent,
+    high: meta.regularMarketDayHigh ?? Math.max(...bars.map((b) => b.high), price),
+    low: meta.regularMarketDayLow ?? Math.min(...bars.map((b) => b.low), price),
+    source: 'yahoo',
+  }
+}
+
+function stitchLivePrice(bars: Bar[], livePrice: number, intervalSec: number): Bar[] {
+  if (!bars.length || !Number.isFinite(livePrice) || livePrice <= 0) return bars
+
+  const out = [...bars]
+  const last = out[out.length - 1]
+  const now = Math.floor(Date.now() / 1000)
+  const stale = now - last.time > intervalSec * 2
+
+  if (stale) {
+    out.push({
+      time: now,
+      open: last.close,
+      high: Math.max(last.close, livePrice),
+      low: Math.min(last.close, livePrice),
+      close: livePrice,
+    })
+    return out
+  }
+
+  out[out.length - 1] = {
+    ...last,
+    close: livePrice,
+    high: Math.max(last.high, livePrice),
+    low: Math.min(last.low, livePrice),
   }
   return out
 }
@@ -159,11 +225,12 @@ const YAHOO_TIMEFRAMES: Record<string, { interval: string; range: string }> = {
 async function fetchYahooBars(
   yahooSymbol: string,
   timeframe: string
-): Promise<{ bars: Bar[]; meta?: { price: number; changePercent: number } } | null> {
+): Promise<{ bars: Bar[]; meta?: YahooMeta } | null> {
   const cfg = YAHOO_TIMEFRAMES[timeframe] ?? YAHOO_TIMEFRAMES['1h']
   const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}`)
   url.searchParams.set('interval', cfg.interval)
   url.searchParams.set('range', cfg.range)
+  url.searchParams.set('includePrePost', 'false')
 
   const res = await fetch(url, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TradeStryker/1.0)' },
@@ -174,8 +241,16 @@ async function fetchYahooBars(
     chart?: {
       result?: Array<{
         timestamp?: number[]
-        indicators?: { quote?: Array<{ open?: number[]; high?: number[]; low?: number[]; close?: number[]; volume?: number[] }> }
-        meta?: { regularMarketPrice?: number; chartPreviousClose?: number }
+        indicators?: {
+          quote?: Array<{
+            open?: number[]
+            high?: number[]
+            low?: number[]
+            close?: number[]
+            volume?: number[]
+          }>
+        }
+        meta?: YahooMeta
       }>
     }
   }
@@ -200,26 +275,26 @@ async function fetchYahooBars(
   }
 
   if (!bars.length) return null
-
-  const price = result.meta?.regularMarketPrice ?? bars[bars.length - 1].close
-  const prev = result.meta?.chartPreviousClose ?? bars[0].close
-  const changePercent = prev ? ((price - prev) / prev) * 100 : 0
-
-  return { bars, meta: { price, changePercent } }
+  return { bars, meta: result.meta }
 }
 
-async function fetchCoinGeckoBars(coingeckoId: string, days: number): Promise<Bar[] | null> {
-  const url = `https://api.coingecko.com/api/v3/coins/${coingeckoId}/ohlc?vs_currency=usd&days=${days}`
+async function fetchCoinGeckoQuote(coingeckoId: string, bars: Bar[]): Promise<Quote | null> {
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd&include_24hr_change=true`
   const res = await fetch(url, { headers: { accept: 'application/json' } })
   if (!res.ok) return null
-  const rows = (await res.json()) as [number, number, number, number, number][]
-  return rows.map(([ms, open, high, low, close]) => ({
-    time: Math.floor(ms / 1000),
-    open,
-    high,
-    low,
-    close,
-  }))
+  const data = (await res.json()) as Record<string, { usd: number; usd_24h_change?: number }>
+  const row = data[coingeckoId]
+  if (!row?.usd) return null
+
+  const changePercent = row.usd_24h_change ?? 0
+  return {
+    price: row.usd,
+    change: (row.usd * changePercent) / 100,
+    changePercent,
+    high: Math.max(...bars.map((b) => b.high), row.usd),
+    low: Math.min(...bars.map((b) => b.low), row.usd),
+    source: 'coingecko',
+  }
 }
 
 function syntheticBars(symbol: string, timeframe: string, basePrice = 100): Bar[] {
@@ -249,78 +324,22 @@ function syntheticBars(symbol: string, timeframe: string, basePrice = 100): Bar[
   return bars
 }
 
-export async function fetchMarketBars(
-  symbol: string,
-  timeframe: string,
-  basePrice?: number,
-  assetClass?: AssetClass
-): Promise<{ bars: Bar[]; source: Quote['source'] }> {
-  const cfg = TIMEFRAME_CONFIG[timeframe] ?? TIMEFRAME_CONFIG['1h']
-  const resolved = resolveMarketSymbol(symbol, assetClass)
-  const now = Math.floor(Date.now() / 1000)
-  const from = now - cfg.count * cfg.intervalSec * (cfg.aggregate ?? 1)
-  let source: Quote['source'] = 'synthetic'
-
-  let bars =
-    (await fetchFinnhubCandles(
-      resolved.finnhub,
-      resolved.assetClass,
-      cfg.resolution,
-      from,
-      now
-    )) ?? null
-
-  if (bars?.length) {
-    source = 'finnhub'
-  }
-
-  if (bars && cfg.aggregate) {
-    bars = aggregateBars(bars, cfg.aggregate)
-  }
-
-  if (!bars?.length && resolved.coingeckoId) {
-    const days = timeframe === '1D' ? 90 : 30
-    bars = await fetchCoinGeckoBars(resolved.coingeckoId, days)
-    if (bars?.length) source = 'coingecko'
-  }
-
-  if (!bars?.length && resolved.yahoo) {
-    const yahoo = await fetchYahooBars(resolved.yahoo, timeframe)
-    if (yahoo?.bars.length) {
-      bars = yahoo.bars
-      if (cfg.aggregate) bars = aggregateBars(bars, cfg.aggregate)
-      source = 'yahoo'
-    }
-  }
-
-  if (!bars?.length) {
-    return { bars: syntheticBars(symbol, timeframe, basePrice), source: 'synthetic' }
-  }
-
-  return { bars, source }
-}
-
 export async function fetchQuote(
   symbol: string,
   bars: Bar[],
-  assetClass?: AssetClass
+  assetClass?: AssetClass,
+  yahooMeta?: YahooMeta
 ): Promise<Quote> {
   const resolved = resolveMarketSymbol(symbol, assetClass)
   const apiKey = process.env.FINNHUB_API_KEY
 
-  if (apiKey && resolved.assetClass !== 'crypto') {
+  if (apiKey) {
     const url = new URL('https://finnhub.io/api/v1/quote')
     url.searchParams.set('symbol', resolved.finnhub)
     url.searchParams.set('token', apiKey)
     const res = await fetch(url)
     if (res.ok) {
-      const q = (await res.json()) as {
-        c: number
-        d: number
-        dp: number
-        h: number
-        l: number
-      }
+      const q = (await res.json()) as { c: number; d: number; dp: number; h: number; l: number }
       if (q.c > 0) {
         return {
           price: q.c,
@@ -334,39 +353,22 @@ export async function fetchQuote(
     }
   }
 
-  if (resolved.coingeckoId) {
-    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${resolved.coingeckoId}&vs_currencies=usd&include_24hr_change=true`
-    const res = await fetch(url)
-    if (res.ok) {
-      const data = (await res.json()) as Record<string, { usd: number; usd_24h_change?: number }>
-      const row = data[resolved.coingeckoId]
-      if (row?.usd) {
-        const changePercent = row.usd_24h_change ?? 0
-        const change = (row.usd * changePercent) / 100
-        return {
-          price: row.usd,
-          change,
-          changePercent,
-          high: Math.max(...bars.map((b) => b.high)),
-          low: Math.min(...bars.map((b) => b.low)),
-          source: 'coingecko',
-        }
-      }
-    }
+  if (yahooMeta) {
+    const yahooQuote = quoteFromYahooMeta(yahooMeta, bars)
+    if (yahooQuote) return yahooQuote
   }
 
   if (resolved.yahoo) {
     const yahoo = await fetchYahooBars(resolved.yahoo, '1h')
     if (yahoo?.meta) {
-      return {
-        price: yahoo.meta.price,
-        change: (yahoo.meta.price * yahoo.meta.changePercent) / 100,
-        changePercent: yahoo.meta.changePercent,
-        high: Math.max(...bars.map((b) => b.high)),
-        low: Math.min(...bars.map((b) => b.low)),
-        source: 'yahoo',
-      }
+      const yahooQuote = quoteFromYahooMeta(yahoo.meta, bars)
+      if (yahooQuote) return yahooQuote
     }
+  }
+
+  if (resolved.coingeckoId) {
+    const cgQuote = await fetchCoinGeckoQuote(resolved.coingeckoId, bars)
+    if (cgQuote) return cgQuote
   }
 
   const last = bars[bars.length - 1]?.close ?? 0
@@ -380,6 +382,53 @@ export async function fetchQuote(
     low: Math.min(...bars.map((b) => b.low)),
     source: 'synthetic',
   }
+}
+
+export async function fetchMarketBars(
+  symbol: string,
+  timeframe: string,
+  basePrice?: number,
+  assetClass?: AssetClass
+): Promise<{ bars: Bar[]; source: Quote['source'] }> {
+  const cfg = TIMEFRAME_CONFIG[timeframe] ?? TIMEFRAME_CONFIG['1h']
+  const resolved = resolveMarketSymbol(symbol, assetClass)
+  const now = Math.floor(Date.now() / 1000)
+  const from = now - cfg.count * cfg.intervalSec * (cfg.aggregate ?? 1)
+  let source: Quote['source'] = 'synthetic'
+  let bars: Bar[] | null = null
+  let yahooMeta: YahooMeta | undefined
+
+  bars =
+    (await fetchFinnhubCandles(
+      resolved.finnhub,
+      resolved.assetClass,
+      cfg.resolution,
+      from,
+      now
+    )) ?? null
+  if (bars?.length) source = 'finnhub'
+
+  if (!bars?.length && resolved.yahoo) {
+    const yahoo = await fetchYahooBars(resolved.yahoo, timeframe)
+    if (yahoo?.bars.length) {
+      bars = yahoo.bars
+      yahooMeta = yahoo.meta
+      source = 'yahoo'
+    }
+  }
+
+  if (bars && cfg.aggregate) {
+    bars = aggregateBars(bars, cfg.aggregate)
+  }
+
+  if (!bars?.length) {
+    return { bars: syntheticBars(symbol, timeframe, basePrice), source: 'synthetic' }
+  }
+
+  const quote = await fetchQuote(symbol, bars, assetClass, yahooMeta)
+  bars = stitchLivePrice(bars, quote.price, cfg.intervalSec)
+
+  return { bars, source }
 }
 
 export function cors(res: { setHeader: (k: string, v: string) => void }) {

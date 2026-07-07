@@ -13,7 +13,7 @@ export const TICKERS: Ticker[] = [
   {
     symbol: 'BTC/USD',
     name: 'Bitcoin',
-    basePrice: 67200,
+    basePrice: 63800,
     volatility: 0.018,
     logoUrl: 'https://s3-symbol-logo.tradingview.com/crypto/XTVCBTC--big.svg',
     assetClass: 'crypto',
@@ -125,7 +125,7 @@ export const TICKERS: Ticker[] = [
   {
     symbol: 'XAU/USD',
     name: 'Gold',
-    basePrice: 2340,
+    basePrice: 4120,
     volatility: 0.007,
     logoUrl: 'https://s3-symbol-logo.tradingview.com/metal-gold--big.svg',
     assetClass: 'metal',
