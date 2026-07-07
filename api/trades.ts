@@ -1,78 +1,88 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { cors } from './_lib/market.js'
-import { getDb, getUserFromRequest } from './_lib/db.js'
+import { ensureProfile, getSupabaseAdmin, getUserFromRequest } from './_lib/db.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res)
   if (req.method === 'OPTIONS') return res.status(200).end()
 
-  const user = await getUserFromRequest(req.headers.authorization)
-  if (!user) return res.status(401).json({ error: 'Unauthorized' })
+  try {
+    const user = await getUserFromRequest(req.headers.authorization)
+    if (!user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const sql = getDb()
+    await ensureProfile(user)
+    const supabase = getSupabaseAdmin()
 
-  if (req.method === 'GET') {
-    const status = req.query.status ? String(req.query.status) : null
-    const limit = Math.min(Number(req.query.limit ?? 50), 100)
-    const rows = status
-      ? await sql`
-          select * from public.trades
-          where user_id = ${user.id} and status = ${status}
-          order by created_at desc
-          limit ${limit}
-        `
-      : await sql`
-          select * from public.trades
-          where user_id = ${user.id}
-          order by created_at desc
-          limit ${limit}
-        `
-    return res.status(200).json({ trades: rows })
+    if (req.method === 'GET') {
+      const status = req.query.status ? String(req.query.status) : null
+      const limit = Math.min(Number(req.query.limit ?? 50), 100)
+      let query = supabase
+        .from('trades')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (status) query = query.eq('status', status)
+
+      const { data, error } = await query
+      if (error) throw error
+      return res.status(200).json({ trades: data ?? [] })
+    }
+
+    if (req.method === 'POST') {
+      const body = req.body ?? {}
+      const { data, error } = await supabase
+        .from('trades')
+        .insert({
+          user_id: user.id,
+          setup_id: body.setupId ?? null,
+          ticker_symbol: body.tickerSymbol,
+          ticker_name: body.tickerName ?? null,
+          direction: body.direction,
+          entry_price: body.entryPrice ?? null,
+          exit_price: body.exitPrice ?? null,
+          quantity: body.quantity ?? 1,
+          status: body.status ?? 'open',
+          pnl: body.pnl ?? null,
+          pnl_percent: body.pnlPercent ?? null,
+          notes: body.notes ?? null,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return res.status(201).json({ trade: data })
+    }
+
+    if (req.method === 'PATCH') {
+      const body = req.body ?? {}
+      if (!body.id) return res.status(400).json({ error: 'id is required' })
+
+      const updates: Record<string, unknown> = {}
+      if (body.exitPrice != null) updates.exit_price = body.exitPrice
+      if (body.status != null) updates.status = body.status
+      if (body.pnl != null) updates.pnl = body.pnl
+      if (body.pnlPercent != null) updates.pnl_percent = body.pnlPercent
+      if (body.notes != null) updates.notes = body.notes
+      if (body.status === 'closed') updates.closed_at = new Date().toISOString()
+
+      const { data, error } = await supabase
+        .from('trades')
+        .update(updates)
+        .eq('id', body.id)
+        .eq('user_id', user.id)
+        .select()
+        .single()
+
+      if (error) throw error
+      if (!data) return res.status(404).json({ error: 'Trade not found' })
+      return res.status(200).json({ trade: data })
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' })
+  } catch (err) {
+    console.error('trades error', err)
+    return res.status(500).json({ error: 'Failed to process trade request' })
   }
-
-  if (req.method === 'POST') {
-    const body = req.body ?? {}
-    const [row] = await sql`
-      insert into public.trades (
-        user_id, setup_id, ticker_symbol, ticker_name, direction,
-        entry_price, exit_price, quantity, status, pnl, pnl_percent, notes
-      ) values (
-        ${user.id},
-        ${body.setupId ?? null},
-        ${body.tickerSymbol},
-        ${body.tickerName ?? null},
-        ${body.direction},
-        ${body.entryPrice ?? null},
-        ${body.exitPrice ?? null},
-        ${body.quantity ?? 1},
-        ${body.status ?? 'open'},
-        ${body.pnl ?? null},
-        ${body.pnlPercent ?? null},
-        ${body.notes ?? null}
-      )
-      returning *
-    `
-    return res.status(201).json({ trade: row })
-  }
-
-  if (req.method === 'PATCH') {
-    const body = req.body ?? {}
-    if (!body.id) return res.status(400).json({ error: 'id is required' })
-
-    const [row] = await sql`
-      update public.trades set
-        exit_price = coalesce(${body.exitPrice ?? null}, exit_price),
-        status = coalesce(${body.status ?? null}, status),
-        pnl = coalesce(${body.pnl ?? null}, pnl),
-        pnl_percent = coalesce(${body.pnlPercent ?? null}, pnl_percent),
-        notes = coalesce(${body.notes ?? null}, notes),
-        closed_at = case when ${body.status ?? null} = 'closed' then now() else closed_at end
-      where id = ${body.id} and user_id = ${user.id}
-      returning *
-    `
-    if (!row) return res.status(404).json({ error: 'Trade not found' })
-    return res.status(200).json({ trade: row })
-  }
-
-  return res.status(405).json({ error: 'Method not allowed' })
 }

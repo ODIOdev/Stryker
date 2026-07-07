@@ -1,0 +1,10 @@
+project_id = "xrwvaelhmibhslmfvxrs"
+
+[auth]
+site_url = "https://trade-stryke.vercel.app"
+additional_redirect_urls = ["https://trade-stryke.vercel.app", "http://localhost:5173"]
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

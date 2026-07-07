@@ -1,60 +1,65 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { cors } from './_lib/market.js'
-import { getDb, getUserFromRequest } from './_lib/db.js'
+import { ensureProfile, getSupabaseAdmin, getUserFromRequest } from './_lib/db.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   cors(res)
   if (req.method === 'OPTIONS') return res.status(200).end()
 
-  const user = await getUserFromRequest(req.headers.authorization)
-  if (!user) return res.status(401).json({ error: 'Unauthorized' })
+  try {
+    const user = await getUserFromRequest(req.headers.authorization)
+    if (!user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const sql = getDb()
+    await ensureProfile(user)
+    const supabase = getSupabaseAdmin()
 
-  if (req.method === 'GET') {
-    const limit = Math.min(Number(req.query.limit ?? 50), 100)
-    const rows = await sql`
-      select *
-      from public.setups
-      where user_id = ${user.id}
-      order by created_at desc
-      limit ${limit}
-    `
-    return res.status(200).json({ setups: rows })
+    if (req.method === 'GET') {
+      const limit = Math.min(Number(req.query.limit ?? 50), 100)
+      const { data, error } = await supabase
+        .from('setups')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+
+      if (error) throw error
+      return res.status(200).json({ setups: data ?? [] })
+    }
+
+    if (req.method === 'POST') {
+      const body = req.body ?? {}
+      const { data, error } = await supabase
+        .from('setups')
+        .insert({
+          user_id: user.id,
+          ticker_symbol: body.tickerSymbol,
+          ticker_name: body.tickerName ?? null,
+          logo_url: body.logoUrl ?? null,
+          timeframe: body.timeframe,
+          score: body.score ?? 0,
+          max_score: body.maxScore ?? 0,
+          grade: body.grade ?? null,
+          rating_label: body.ratingLabel ?? null,
+          rating_color: body.ratingColor ?? null,
+          quality_pct: body.qualityPct ?? null,
+          sync_pct: body.syncPct ?? null,
+          confidence_pct: body.confidencePct ?? null,
+          active_count: body.activeCount ?? 0,
+          complete_count: body.completeCount ?? 0,
+          bias: body.bias ?? null,
+          entry_price: body.entryPrice ?? null,
+          factors_json: body.factorsJson ?? null,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+      return res.status(201).json({ setup: data })
+    }
+
+    return res.status(405).json({ error: 'Method not allowed' })
+  } catch (err) {
+    console.error('setups error', err)
+    return res.status(500).json({ error: 'Failed to process setup request' })
   }
-
-  if (req.method === 'POST') {
-    const body = req.body ?? {}
-    const [row] = await sql`
-      insert into public.setups (
-        user_id, ticker_symbol, ticker_name, logo_url, timeframe,
-        score, max_score, grade, rating_label, rating_color,
-        quality_pct, sync_pct, confidence_pct, active_count, complete_count,
-        bias, entry_price, factors_json
-      ) values (
-        ${user.id},
-        ${body.tickerSymbol},
-        ${body.tickerName ?? null},
-        ${body.logoUrl ?? null},
-        ${body.timeframe},
-        ${body.score ?? 0},
-        ${body.maxScore ?? 0},
-        ${body.grade ?? null},
-        ${body.ratingLabel ?? null},
-        ${body.ratingColor ?? null},
-        ${body.qualityPct ?? null},
-        ${body.syncPct ?? null},
-        ${body.confidencePct ?? null},
-        ${body.activeCount ?? 0},
-        ${body.completeCount ?? 0},
-        ${body.bias ?? null},
-        ${body.entryPrice ?? null},
-        ${body.factorsJson ? sql.json(body.factorsJson) : null}
-      )
-      returning *
-    `
-    return res.status(201).json({ setup: row })
-  }
-
-  return res.status(405).json({ error: 'Method not allowed' })
 }
