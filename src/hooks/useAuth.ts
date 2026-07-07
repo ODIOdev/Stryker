@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { User, Session } from '@supabase/supabase-js'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
+import { clearGuestAccess } from '../lib/guestSession'
 
 export type UserRole = 'user' | 'admin' | 'master_admin'
 
@@ -73,13 +74,14 @@ export function useAuth() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
       options: {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/dashboard`,
       },
     })
     if (error) throw error
   }, [])
 
   const signOut = useCallback(async () => {
+    clearGuestAccess()
     if (!supabase) return
     await supabase.auth.signOut()
   }, [])

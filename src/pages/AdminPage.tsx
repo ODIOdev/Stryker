@@ -87,7 +87,7 @@ export function AdminPage() {
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-okx-border/80 bg-okx-bg px-4 py-4 sm:px-6">
             <div className="flex items-center gap-3">
               <Link
-                to="/"
+                to="/dashboard"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-okx-muted transition-colors hover:bg-okx-card hover:text-okx-text"
                 aria-label="Back to dashboard"
               >

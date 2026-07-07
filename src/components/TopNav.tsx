@@ -177,7 +177,7 @@ function SettingsNavDropdown({
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  navigate('/signin')
+                  navigate('/')
                   close()
                 }}
                 className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-okx-subtle hover:bg-okx-hover hover:text-okx-text"
@@ -315,12 +315,12 @@ export function TopNav({
           <Menu className="h-5 w-5" />
         </button>
 
-        <a href="/" className="flex shrink-0 items-center gap-2">
+        <Link to="/dashboard" className="flex shrink-0 items-center gap-2">
           <Zap className="h-6 w-6 text-okx-lime" fill="currentColor" strokeWidth={0} />
           <span className="hidden text-base font-semibold sm:inline">
             Trade <span className="text-okx-lime">Stryke</span>
           </span>
-        </a>
+        </Link>
 
         <nav className="hidden shrink-0 items-center gap-1 lg:flex">
           {NAV.map((item) =>
@@ -400,7 +400,7 @@ export function TopNav({
             </div>
           ) : (
             <Link
-              to="/signin"
+              to="/"
               className="shrink-0 rounded-full bg-okx-lime px-3.5 py-2 text-xs font-semibold text-black hover:bg-okx-lime-dim sm:px-4"
             >
               Sign in

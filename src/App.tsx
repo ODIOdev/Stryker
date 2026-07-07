@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { TICKERS, type Ticker } from './data/tickers'
 import { useConfluenceScore } from './hooks/useConfluenceScore'
 import { useGeneratedTrades } from './hooks/useGeneratedTrades'
@@ -20,6 +20,7 @@ import type { Timeframe } from './data/chartData'
 export type ChartMode = 'line' | 'candlestick'
 
 function App() {
+  const navigate = useNavigate()
   const [ticker, setTicker] = useState<Ticker>(TICKERS[0])
   const [chartMode, setChartMode] = useState<ChartMode>('line')
   const [timeframe, setTimeframe] = useState<Timeframe>('1h')
@@ -31,6 +32,11 @@ function App() {
   const confluence = useConfluenceScore(timeframe)
   const market = useMarketData(ticker, timeframe)
   const { trades: generatedTrades, addTrade } = useGeneratedTrades(isAuthenticated, refreshStats)
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/')
+  }
 
   const handleGenerate = () => {
     addTrade({
@@ -63,7 +69,7 @@ function App() {
           onViewChange={setActiveTab}
           user={user}
           isMasterAdmin={isMasterAdmin}
-          onSignOut={signOut}
+          onSignOut={handleSignOut}
         />
 
         <main className="scrollbar-none flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-6 py-5">
@@ -197,7 +203,7 @@ function App() {
                 </p>
                 {!isAuthenticated && (
                   <Link
-                    to="/signin"
+                    to="/"
                     className="mt-4 inline-block rounded-full bg-okx-lime px-6 py-2.5 text-sm font-semibold text-black hover:bg-okx-lime-dim"
                   >
                     Sign in

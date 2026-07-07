@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { BarChart3, LineChart, Target, Zap } from 'lucide-react'
 import { AuthCard } from '../components/AuthCard'
 import { useAuth } from '../hooks/useAuth'
+import { enableGuestAccess } from '../lib/guestSession'
 
 const FEATURES = [
   { icon: LineChart, label: 'Live charts', desc: 'Stocks, crypto, forex & metals' },
@@ -23,7 +24,7 @@ export function SignInPage() {
   }, [])
 
   useEffect(() => {
-    if (!loading && user) navigate('/', { replace: true })
+    if (!loading && user) navigate('/dashboard', { replace: true })
   }, [user, loading, navigate])
 
   if (loading) {
@@ -75,9 +76,16 @@ export function SignInPage() {
           </ul>
 
           <p className="mt-8 hidden text-sm text-okx-muted lg:block">
-            <Link to="/" className="text-okx-lime hover:underline">
+            <button
+              type="button"
+              onClick={() => {
+                enableGuestAccess()
+                navigate('/dashboard')
+              }}
+              className="text-okx-lime hover:underline"
+            >
               Continue as guest
-            </Link>{' '}
+            </button>{' '}
             — explore the dashboard without an account
           </p>
         </motion.div>
@@ -88,11 +96,18 @@ export function SignInPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className="mx-auto w-full max-w-md"
         >
-          <AuthCard onSuccess={() => navigate('/', { replace: true })} />
+          <AuthCard onSuccess={() => navigate('/dashboard', { replace: true })} />
           <p className="mt-4 text-center text-sm text-okx-muted lg:hidden">
-            <Link to="/" className="text-okx-lime hover:underline">
+            <button
+              type="button"
+              onClick={() => {
+                enableGuestAccess()
+                navigate('/dashboard')
+              }}
+              className="text-okx-lime hover:underline"
+            >
               Continue as guest
-            </Link>
+            </button>
           </p>
         </motion.div>
       </div>
