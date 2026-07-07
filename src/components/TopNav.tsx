@@ -102,11 +102,11 @@ export function TopNav({
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'TS'
 
   return (
-    <header className="shrink-0 border-b border-okx-border/80 bg-okx-bg">
-      <div className="flex w-full items-center gap-3 px-6 py-3 sm:gap-6">
+    <header className="shrink-0 overflow-hidden border-b border-okx-border/80 bg-okx-bg">
+      <div className="flex w-full min-w-0 items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
         <button
           type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-okx-muted hover:bg-okx-card lg:hidden"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-okx-muted hover:bg-okx-card lg:hidden"
           aria-label="Menu"
         >
           <Menu className="h-5 w-5" />
@@ -119,7 +119,7 @@ export function TopNav({
           </span>
         </a>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden shrink-0 items-center gap-1 lg:flex">
           {NAV.map((item) =>
             item === 'Scoreboard' ? (
               <ScoreboardNavDropdown
@@ -140,54 +140,56 @@ export function TopNav({
           )}
         </nav>
 
-        <div className="ml-auto hidden max-w-[220px] flex-1 sm:block lg:max-w-[280px]">
-          <TickerSearch ticker={ticker} onSelect={onTickerSelect} compact />
-        </div>
-
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-okx-muted hover:bg-okx-card sm:hidden"
-          aria-label="Search"
-        >
-          <Search className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-okx-muted transition-colors hover:bg-okx-card hover:text-okx-text"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-        </button>
-
-        {user ? (
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="hidden h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-okx-muted hover:bg-okx-card hover:text-okx-text sm:flex"
-              title="Sign out"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign out
-            </button>
-            <button
-              type="button"
-              className="flex h-9 w-9 items-center justify-center rounded-full bg-okx-elevated text-xs font-semibold text-okx-cyan"
-              title={user.email ?? 'Account'}
-            >
-              {initials}
-            </button>
+        <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="hidden w-[min(200px,22vw)] sm:block lg:w-[220px]">
+            <TickerSearch ticker={ticker} onSelect={onTickerSelect} compact />
           </div>
-        ) : (
+
           <button
             type="button"
-            onClick={onSignInClick}
-            className="rounded-full bg-okx-lime px-4 py-2 text-xs font-semibold text-black hover:bg-okx-lime-dim"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-okx-muted hover:bg-okx-card sm:hidden"
+            aria-label="Search"
           >
-            Sign in
+            <Search className="h-4 w-4" />
           </button>
-        )}
+
+          <button
+            type="button"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-okx-muted transition-colors hover:bg-okx-card hover:text-okx-text"
+            aria-label="Notifications"
+          >
+            <Bell className="h-4 w-4" />
+          </button>
+
+          {user ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="hidden h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-okx-muted hover:bg-okx-card hover:text-okx-text md:flex"
+                title="Sign out"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
+              <button
+                type="button"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-okx-elevated text-xs font-semibold text-okx-cyan"
+                title={user.email ?? 'Account'}
+              >
+                {initials}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onSignInClick}
+              className="shrink-0 rounded-full bg-okx-lime px-3.5 py-2 text-xs font-semibold text-black hover:bg-okx-lime-dim sm:px-4"
+            >
+              Sign in
+            </button>
+          )}
+        </div>
       </div>
     </header>
   )

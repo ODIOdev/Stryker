@@ -130,6 +130,8 @@ textarea,
   position: relative;
   isolation: isolate;
   flex-shrink: 0;
+  width: 100%;
+  max-width: 1440px;
 }
 
 .dashboard-brand-mark {
@@ -454,7 +456,8 @@ textarea,
 
 /* Fixed-size dashboard frame — consistent across every page */
 .dashboard-shell {
-  width: 1440px;
+  width: 100%;
+  max-width: 1440px;
   height: 969px;
   flex-shrink: 0;
   position: relative;
