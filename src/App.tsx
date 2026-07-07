@@ -13,7 +13,7 @@ import { StatsWidgets } from './components/StatsWidgets'
 import { StatCardsRow } from './components/StatCardsRow'
 import { TopNav, type DashboardView } from './components/TopNav'
 import { AssetHeader } from './components/AssetHeader'
-import { GenerateButton } from './components/ui/GenerateButton'
+import { TickerSearch } from './components/TickerSearch'
 import { GeneratedTradesGallery } from './components/GeneratedTradesGallery'
 import type { Timeframe } from './data/chartData'
 
@@ -25,7 +25,7 @@ function App() {
   const [timeframe, setTimeframe] = useState<Timeframe>('1h')
   const [activeTab, setActiveTab] = useState<DashboardView>('Chart')
 
-  const { user, signOut } = useAuth()
+  const { user, signOut, isMasterAdmin } = useAuth()
   const isAuthenticated = Boolean(user)
   const { stats, refresh: refreshStats } = useUserStats(isAuthenticated)
   const confluence = useConfluenceScore(timeframe)
@@ -59,11 +59,10 @@ function App() {
         </div>
         <div className="dashboard-shell flex flex-col overflow-hidden rounded-2xl">
         <TopNav
-          ticker={ticker}
-          onTickerSelect={setTicker}
           activeView={activeTab}
           onViewChange={setActiveTab}
           user={user}
+          isMasterAdmin={isMasterAdmin}
           onSignOut={signOut}
         />
 
@@ -76,14 +75,16 @@ function App() {
 
           {activeTab === 'Chart' && (
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-[minmax(0,1fr)_320px] items-start gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-4">
                 <AssetHeader
-                  inline
                   ticker={ticker}
                   onTickerSelect={setTicker}
-                  className="min-w-0"
+                  showSearch={false}
+                  className="min-w-0 sm:justify-self-start"
                 />
-                <GenerateButton onClick={handleGenerate} />
+                <div className="w-full min-w-[320px] max-w-[560px] justify-self-center sm:translate-x-6">
+                  <TickerSearch ticker={ticker} onSelect={setTicker} compact />
+                </div>
               </div>
 
               <StatCardsRow stats={stats} isAuthenticated={isAuthenticated} />
@@ -112,6 +113,7 @@ function App() {
                     confidencePct={confluence.confidencePct}
                     alignedCount={confluence.syncedCount}
                     activeCount={confluence.activeCount}
+                    onGenerate={handleGenerate}
                   />
                 </section>
 

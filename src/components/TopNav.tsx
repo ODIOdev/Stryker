@@ -7,13 +7,11 @@ import {
   HelpCircle,
   LogOut,
   Menu,
-  Search,
   Settings,
+  Shield,
   User,
   Zap,
 } from 'lucide-react'
-import { TickerSearch } from './TickerSearch'
-import type { Ticker } from '../data/tickers'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 const NAV = ['Scoreboard', 'Markets', 'Trade', 'Portfolio']
@@ -22,11 +20,10 @@ export const DASHBOARD_VIEWS = ['Chart', 'Scoreboard', 'Performance', 'Journal']
 export type DashboardView = (typeof DASHBOARD_VIEWS)[number]
 
 interface TopNavProps {
-  ticker: Ticker
-  onTickerSelect: (t: Ticker) => void
   activeView: DashboardView
   onViewChange: (view: DashboardView) => void
   user?: SupabaseUser | null
+  isMasterAdmin?: boolean
   onSignOut?: () => void
 }
 
@@ -104,11 +101,13 @@ function ScoreboardNavDropdown({
 
 function SettingsNavDropdown({
   user,
+  isMasterAdmin,
   onSignOut,
   onViewChange,
   compact,
 }: {
   user?: SupabaseUser | null
+  isMasterAdmin?: boolean
   onSignOut?: () => void
   onViewChange: (view: DashboardView) => void
   compact?: boolean
@@ -203,6 +202,18 @@ function SettingsNavDropdown({
               </button>
             )}
 
+            {isMasterAdmin && (
+              <Link
+                to="/admin"
+                role="menuitem"
+                onClick={close}
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-okx-lime hover:bg-okx-lime/10"
+              >
+                <Shield className="h-4 w-4 shrink-0" />
+                Admin panel
+              </Link>
+            )}
+
             <div className="my-1 border-t border-okx-border/80" />
 
             <button
@@ -285,11 +296,10 @@ function SettingsNavDropdown({
 }
 
 export function TopNav({
-  ticker,
-  onTickerSelect,
   activeView,
   onViewChange,
   user,
+  isMasterAdmin,
   onSignOut,
 }: TopNavProps) {
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'TS'
@@ -333,32 +343,33 @@ export function TopNav({
           )}
           <SettingsNavDropdown
             user={user}
+            isMasterAdmin={isMasterAdmin}
             onSignOut={onSignOut}
             onViewChange={onViewChange}
           />
         </nav>
 
         <div className="ml-auto flex min-w-0 shrink-0 items-center gap-1.5 sm:gap-2">
-          <div className="hidden w-[min(200px,22vw)] sm:block lg:w-[220px]">
-            <TickerSearch ticker={ticker} onSelect={onTickerSelect} compact />
-          </div>
-
-          <button
-            type="button"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-okx-muted hover:bg-okx-card sm:hidden"
-            aria-label="Search"
-          >
-            <Search className="h-4 w-4" />
-          </button>
-
           <div className="lg:hidden">
             <SettingsNavDropdown
               user={user}
+              isMasterAdmin={isMasterAdmin}
               onSignOut={onSignOut}
               onViewChange={onViewChange}
               compact
             />
           </div>
+
+          {isMasterAdmin && (
+            <Link
+              to="/admin"
+              className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-okx-lime/25 bg-okx-lime/10 px-2.5 text-okx-lime transition-colors hover:bg-okx-lime/15 lg:px-3"
+              aria-label="Admin panel"
+            >
+              <Shield className="h-4 w-4" />
+              <span className="hidden text-sm font-medium lg:inline">Admin</span>
+            </Link>
+          )}
 
           <button
             type="button"

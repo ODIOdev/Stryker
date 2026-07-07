@@ -27,7 +27,7 @@ export function GenerateButton({ onClick, className = '' }: GenerateButtonProps)
       onMouseMove={handleMove}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
-      className={`group relative w-full overflow-hidden rounded-xl border border-okx-lime/60 bg-okx-lime px-4 py-3 text-sm font-semibold text-black shadow-[0_0_28px_rgba(188,255,47,0.4)] transition-[box-shadow,border-color] duration-300 hover:border-okx-lime hover:shadow-[0_0_40px_rgba(188,255,47,0.55)] ${className}`}
+      className={`group relative w-auto shrink-0 overflow-hidden rounded-lg border border-okx-lime/60 bg-okx-lime px-3.5 py-2 text-xs font-semibold text-black shadow-[0_0_20px_rgba(188,255,47,0.35)] transition-[box-shadow,border-color] duration-300 hover:border-okx-lime hover:shadow-[0_0_28px_rgba(188,255,47,0.5)] ${className}`}
     >
       <span
         aria-hidden

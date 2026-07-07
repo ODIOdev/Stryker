@@ -8,6 +8,7 @@ interface TickerSearchProps {
   ticker: Ticker
   onSelect: (ticker: Ticker) => void
   compact?: boolean
+  className?: string
 }
 
 interface DropdownRect {
@@ -16,16 +17,12 @@ interface DropdownRect {
   width: number
 }
 
-export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
-  const [query, setQuery] = useState(ticker.symbol)
+export function TickerSearch({ ticker, onSelect, compact, className = '' }: TickerSearchProps) {
+  const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState<DropdownRect | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
-
-  useEffect(() => {
-    setQuery(ticker.symbol)
-  }, [ticker.symbol])
 
   const filtered = query.trim()
     ? TICKERS.filter(
@@ -71,7 +68,7 @@ export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
 
   const selectTicker = (t: Ticker) => {
     onSelect(t)
-    setQuery(t.symbol)
+    setQuery('')
     setOpen(false)
   }
 
@@ -79,6 +76,13 @@ export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
     e.preventDefault()
     const match = findTicker(query) ?? filtered[0]
     if (match) selectTicker(match)
+  }
+
+  const handleBlur = () => {
+    window.setTimeout(() => {
+      setQuery('')
+      setOpen(false)
+    }, 150)
   }
 
   const dropdown =
@@ -117,10 +121,10 @@ export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
       : null
 
   return (
-    <div ref={wrapRef} className="relative z-[60] w-full">
+    <div ref={wrapRef} className={`relative z-[60] w-full ${className}`}>
       <form onSubmit={handleSubmit}>
         <div
-          className={`flex items-center gap-2 rounded-xl bg-okx-card transition-all focus-within:ring-1 focus-within:ring-okx-cyan/40 ${
+          className={`flex items-center gap-2 rounded-xl border border-white/10 bg-okx-card shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all focus-within:border-okx-cyan/30 focus-within:ring-1 focus-within:ring-okx-cyan/40 ${
             compact ? 'px-3 py-2' : 'px-4 py-2.5'
           }`}
         >
@@ -133,9 +137,10 @@ export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
               setOpen(true)
             }}
             onFocus={() => setOpen(true)}
-            placeholder="Search"
-            className="w-full bg-transparent text-sm text-okx-text outline-none placeholder:text-okx-muted"
-            aria-label="Search ticker"
+            onBlur={handleBlur}
+            placeholder="find symbol"
+            className="w-full bg-transparent text-sm text-okx-text outline-none placeholder:font-normal placeholder:text-okx-muted/45"
+            aria-label="Find symbol"
             aria-expanded={open}
             aria-controls="ticker-search-listbox"
             autoComplete="off"

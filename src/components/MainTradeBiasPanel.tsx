@@ -6,9 +6,13 @@ import { scoreAccentColor } from '../lib/scoreColor'
 const QSC_INFO =
   'Q = how good, S = how agreed, C = how reliable — the strip is your at-a-glance "should I trust this trade?" breakdown next to the bias read.'
 
-function QscInfoButton() {
+function QscInfoButton({ size = 'sm' }: { size?: 'sm' | 'md' }) {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const btnClass =
+    size === 'md'
+      ? 'flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border border-okx-border/80 bg-okx-elevated text-[10px] font-bold leading-none text-okx-muted transition-colors hover:border-okx-muted/80 hover:text-okx-text'
+      : 'flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-okx-border/80 bg-okx-elevated text-[9px] font-bold leading-none text-okx-muted transition-colors hover:border-okx-muted/80 hover:text-okx-text'
 
   useEffect(() => {
     if (!open) return
@@ -26,7 +30,7 @@ function QscInfoButton() {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-okx-border/80 bg-okx-elevated text-[9px] font-bold leading-none text-okx-muted transition-colors hover:border-okx-muted/80 hover:text-okx-text"
+        className={btnClass}
         aria-label="What do Q, S, and C mean?"
         aria-expanded={open}
       >
@@ -75,7 +79,35 @@ interface MainTradeBiasPanelProps {
   layout?: 'card' | 'strip'
 }
 
-function MetricBar({ label, value }: { label: string; value: number }) {
+function MetricBar({
+  label,
+  value,
+  size = 'sm',
+}: {
+  label: string
+  value: number
+  size?: 'sm' | 'md'
+}) {
+  if (size === 'md') {
+    return (
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        <span className="w-3 shrink-0 text-[10px] font-bold text-okx-muted">{label}</span>
+        <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-okx-border/60">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ backgroundColor: scoreAccentColor(value) }}
+            initial={false}
+            animate={{ width: `${value}%` }}
+            transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+          />
+        </div>
+        <span className="w-7 shrink-0 text-right text-[10px] tabular-nums text-okx-muted">
+          {value}%
+        </span>
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-w-0 flex-1 items-center gap-1">
       <span className="w-2 shrink-0 text-[8px] font-bold text-okx-muted">{label}</span>
@@ -118,26 +150,26 @@ export function MainTradeBiasPanel({
 
   if (layout === 'strip') {
     return (
-      <div className="flex w-full min-w-0 items-center gap-2.5 rounded-lg border border-okx-border/80 bg-okx-elevated/40 px-2.5 py-2 sm:gap-3 sm:px-3">
-        <div className="shrink-0 border-r border-okx-border/50 pr-2.5 sm:pr-3">
-          <p className="text-[9px] font-medium uppercase tracking-wider text-okx-muted">Bias</p>
+      <div className="flex w-full min-w-0 items-center gap-3 rounded-lg border border-okx-border/80 bg-okx-elevated/40 px-3 py-2.5 sm:gap-4 sm:px-4 sm:py-3">
+        <div className="shrink-0 border-r border-okx-border/50 pr-3 sm:pr-4">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-okx-muted">Bias</p>
           <motion.p
             key={statusLabel}
             initial={{ opacity: 0.7 }}
             animate={{ opacity: 1 }}
-            className={`text-[11px] font-bold uppercase tracking-wide ${statusClass}`}
+            className={`text-[13px] font-bold uppercase tracking-wide sm:text-sm ${statusClass}`}
           >
             {statusLabel}
           </motion.p>
         </div>
 
-        <div className="flex shrink-0 gap-0.5" aria-label="Trade bias indicators">
+        <div className="flex shrink-0 gap-1" aria-label="Trade bias indicators">
           {OPTIONS.map((opt) => {
             const active = bias === opt.value
             return (
               <div
                 key={opt.value}
-                className={`rounded px-1.5 py-0.5 text-center text-[8px] font-bold uppercase ${
+                className={`rounded px-2 py-1 text-center text-[9px] font-bold uppercase sm:text-[10px] ${
                   active ? opt.activeClass : opt.idleClass
                 }`}
                 aria-current={active ? 'true' : undefined}
@@ -149,16 +181,16 @@ export function MainTradeBiasPanel({
         </div>
 
         {bias && activeCount > 0 && (
-          <span className="hidden shrink-0 text-[9px] tabular-nums text-okx-muted sm:inline">
+          <span className="hidden shrink-0 text-[10px] tabular-nums text-okx-muted sm:inline">
             {alignedCount}/{activeCount}
           </span>
         )}
 
-        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-          <MetricBar label="Q" value={qualityPct} />
-          <MetricBar label="S" value={bias ? syncPct : 0} />
-          <MetricBar label="C" value={confidencePct} />
-          <QscInfoButton />
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+          <MetricBar label="Q" value={qualityPct} size="md" />
+          <MetricBar label="S" value={bias ? syncPct : 0} size="md" />
+          <MetricBar label="C" value={confidencePct} size="md" />
+          <QscInfoButton size="md" />
         </div>
       </div>
     )

@@ -19,6 +19,7 @@ import type { TradeBias } from '../lib/confluenceScoring'
 import { SetupScoreCard } from './SetupScoreCard'
 import { TimeframePills } from './ui/TimeframePills'
 import { SegmentedControl } from './ui/SegmentedControl'
+import { GenerateButton } from './ui/GenerateButton'
 
 interface TradeChartProps {
   ticker: Ticker
@@ -39,6 +40,7 @@ interface TradeChartProps {
   confidencePct: number
   alignedCount: number
   activeCount: number
+  onGenerate?: () => void
 }
 
 const LIME = '#bcff2f'
@@ -124,6 +126,7 @@ export function TradeChart({
   confidencePct,
   alignedCount,
   activeCount,
+  onGenerate,
 }: TradeChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -202,12 +205,15 @@ export function TradeChart({
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <div className="flex shrink-0 items-center justify-between gap-4 border-b border-okx-border/60 px-4 py-2.5 sm:px-5">
         <TimeframePills value={timeframe} onChange={onTimeframeChange} />
-        <SegmentedControl
-          options={chartTypeOptions}
-          value={mode}
-          onChange={onModeChange}
-          layoutId="chart-type"
-        />
+        <div className="flex shrink-0 items-center gap-3">
+          {onGenerate && <GenerateButton onClick={onGenerate} />}
+          <SegmentedControl
+            options={chartTypeOptions}
+            value={mode}
+            onChange={onModeChange}
+            layoutId="chart-type"
+          />
+        </div>
       </div>
 
       <div className="shrink-0 px-4 pt-3 pb-1 sm:px-5">

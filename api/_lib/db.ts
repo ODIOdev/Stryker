@@ -28,3 +28,21 @@ export async function ensureProfile(user: { id: string; email?: string | null })
     { onConflict: 'id' }
   )
 }
+
+export async function requireMasterAdmin(authHeader?: string) {
+  const user = await getUserFromRequest(authHeader)
+  if (!user) return { user: null, error: 'Unauthorized' as const }
+
+  const supabase = getSupabaseAdmin()
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+
+  if (profile?.role !== 'master_admin') {
+    return { user: null, error: 'Forbidden' as const }
+  }
+
+  return { user, error: null }
+}

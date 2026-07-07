@@ -45,9 +45,9 @@ export function SignInPage() {
           transition={{ duration: 0.4 }}
           className="text-center lg:text-left"
         >
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-okx-border bg-okx-card/80 px-4 py-1.5 backdrop-blur-sm">
-            <Zap className="h-4 w-4 text-okx-lime" fill="currentColor" strokeWidth={0} />
-            <span className="text-sm font-medium text-okx-subtle">Trade Stryke</span>
+          <div className="mb-8 inline-flex items-center gap-3 rounded-full border border-okx-border bg-okx-card/80 px-8 py-4 backdrop-blur-sm">
+            <Zap className="h-7 w-7 text-okx-lime" fill="currentColor" strokeWidth={0} />
+            <span className="text-xl font-semibold tracking-wide text-okx-subtle">Trade Stryke</span>
           </div>
 
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">

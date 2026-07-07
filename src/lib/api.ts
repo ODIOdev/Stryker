@@ -112,3 +112,34 @@ export function saveTrade(payload: Record<string, unknown>) {
 export function fetchTrades(limit = 50) {
   return request<{ trades: unknown[] }>(`/api/trades?limit=${limit}`)
 }
+
+export interface AdminUser {
+  id: string
+  email: string | null
+  display_name: string | null
+  role: string
+  created_at: string
+}
+
+export interface AdminPlug {
+  id: string
+  name: string
+  status: string
+  description: string
+}
+
+export interface AdminOverview {
+  users: AdminUser[]
+  counts: {
+    users: number
+    setups: number
+    trades: number
+    marketBars: number
+  }
+  apiPlugs: AdminPlug[]
+  integrations: AdminPlug[]
+}
+
+export function fetchAdminOverview() {
+  return request<AdminOverview>('/api/admin/overview')
+}
