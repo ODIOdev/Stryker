@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   Bell,
@@ -26,7 +27,6 @@ interface TopNavProps {
   activeView: DashboardView
   onViewChange: (view: DashboardView) => void
   user?: SupabaseUser | null
-  onSignInClick?: () => void
   onSignOut?: () => void
 }
 
@@ -104,17 +104,16 @@ function ScoreboardNavDropdown({
 
 function SettingsNavDropdown({
   user,
-  onSignInClick,
   onSignOut,
   onViewChange,
   compact,
 }: {
   user?: SupabaseUser | null
-  onSignInClick?: () => void
   onSignOut?: () => void
   onViewChange: (view: DashboardView) => void
   compact?: boolean
 }) {
+  const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState<{ top: number; left: number; width: number } | null>(null)
   const triggerRef = useRef<HTMLDivElement>(null)
@@ -179,7 +178,7 @@ function SettingsNavDropdown({
                 type="button"
                 role="menuitem"
                 onClick={() => {
-                  onSignInClick?.()
+                  navigate('/signin')
                   close()
                 }}
                 className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm text-okx-subtle hover:bg-okx-hover hover:text-okx-text"
@@ -291,7 +290,6 @@ export function TopNav({
   activeView,
   onViewChange,
   user,
-  onSignInClick,
   onSignOut,
 }: TopNavProps) {
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'TS'
@@ -335,7 +333,6 @@ export function TopNav({
           )}
           <SettingsNavDropdown
             user={user}
-            onSignInClick={onSignInClick}
             onSignOut={onSignOut}
             onViewChange={onViewChange}
           />
@@ -357,7 +354,6 @@ export function TopNav({
           <div className="lg:hidden">
             <SettingsNavDropdown
               user={user}
-              onSignInClick={onSignInClick}
               onSignOut={onSignOut}
               onViewChange={onViewChange}
               compact
@@ -392,13 +388,12 @@ export function TopNav({
               </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={onSignInClick}
+            <Link
+              to="/signin"
               className="shrink-0 rounded-full bg-okx-lime px-3.5 py-2 text-xs font-semibold text-black hover:bg-okx-lime-dim sm:px-4"
             >
               Sign in
-            </button>
+            </Link>
           )}
         </div>
       </div>

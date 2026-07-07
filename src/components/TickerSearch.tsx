@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Search } from 'lucide-react'
 import { TICKERS, findTicker, type Ticker } from '../data/tickers'
 
@@ -9,10 +10,18 @@ interface TickerSearchProps {
   compact?: boolean
 }
 
+interface DropdownRect {
+  top: number
+  left: number
+  width: number
+}
+
 export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
   const [query, setQuery] = useState(ticker.symbol)
   const [open, setOpen] = useState(false)
+  const [rect, setRect] = useState<DropdownRect | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
 
   useEffect(() => {
     setQuery(ticker.symbol)
@@ -26,28 +35,89 @@ export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
       )
     : TICKERS
 
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
+  const updateRect = useCallback(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const box = el.getBoundingClientRect()
+    setRect({
+      top: box.bottom + 8,
+      left: box.left,
+      width: box.width,
+    })
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    updateRect()
+    const onScrollOrResize = () => updateRect()
+    window.addEventListener('resize', onScrollOrResize)
+    window.addEventListener('scroll', onScrollOrResize, true)
+    return () => {
+      window.removeEventListener('resize', onScrollOrResize)
+      window.removeEventListener('scroll', onScrollOrResize, true)
+    }
+  }, [open, updateRect])
+
+  useEffect(() => {
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node
+      if (wrapRef.current?.contains(target)) return
+      if (listRef.current?.contains(target)) return
+      setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [])
+
+  const selectTicker = (t: Ticker) => {
+    onSelect(t)
+    setQuery(t.symbol)
+    setOpen(false)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const match = findTicker(query) ?? filtered[0]
-    if (match) {
-      onSelect(match)
-      setQuery(match.symbol)
-      setOpen(false)
-    }
+    if (match) selectTicker(match)
   }
 
+  const dropdown =
+    open && filtered.length > 0 && rect
+      ? createPortal(
+          <AnimatePresence>
+            <motion.ul
+              ref={listRef}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              id="ticker-search-listbox"
+              className="fixed z-[9999] max-h-72 overflow-y-auto rounded-xl border border-okx-border bg-okx-card py-1 shadow-2xl"
+              style={{ top: rect.top, left: rect.left, width: rect.width }}
+              role="listbox"
+            >
+              {filtered.map((t) => (
+                <li key={t.symbol} role="option" aria-selected={t.symbol === ticker.symbol}>
+                  <button
+                    type="button"
+                    className={`flex w-full cursor-pointer items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-okx-hover ${
+                      t.symbol === ticker.symbol ? 'text-okx-cyan' : 'text-okx-text'
+                    }`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => selectTicker(t)}
+                  >
+                    <span>{t.name}</span>
+                    <span className="text-okx-muted">{t.symbol}</span>
+                  </button>
+                </li>
+              ))}
+            </motion.ul>
+          </AnimatePresence>,
+          document.body
+        )
+      : null
+
   return (
-    <div ref={wrapRef} className="relative w-full">
+    <div ref={wrapRef} className="relative z-[60] w-full">
       <form onSubmit={handleSubmit}>
         <div
           className={`flex items-center gap-2 rounded-xl bg-okx-card transition-all focus-within:ring-1 focus-within:ring-okx-cyan/40 ${
@@ -66,41 +136,13 @@ export function TickerSearch({ ticker, onSelect, compact }: TickerSearchProps) {
             placeholder="Search"
             className="w-full bg-transparent text-sm text-okx-text outline-none placeholder:text-okx-muted"
             aria-label="Search ticker"
+            aria-expanded={open}
+            aria-controls="ticker-search-listbox"
             autoComplete="off"
           />
         </div>
       </form>
-
-      <AnimatePresence>
-        {open && filtered.length > 0 && (
-          <motion.ul
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            className="absolute top-full right-0 left-0 z-50 mt-2 overflow-hidden rounded-xl border border-okx-border bg-okx-card py-1 shadow-2xl"
-            role="listbox"
-          >
-            {filtered.map((t) => (
-              <li key={t.symbol}>
-                <button
-                  type="button"
-                  className={`flex w-full items-center justify-between px-4 py-2.5 text-sm hover:bg-okx-hover ${
-                    t.symbol === ticker.symbol ? 'text-okx-cyan' : 'text-okx-text'
-                  }`}
-                  onClick={() => {
-                    onSelect(t)
-                    setQuery(t.symbol)
-                    setOpen(false)
-                  }}
-                >
-                  <span>{t.name}</span>
-                  <span className="text-okx-muted">{t.symbol}</span>
-                </button>
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
+      {dropdown}
     </div>
   )
 }

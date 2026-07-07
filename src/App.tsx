@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { TICKERS, type Ticker } from './data/tickers'
 import { useConfluenceScore } from './hooks/useConfluenceScore'
 import { useGeneratedTrades } from './hooks/useGeneratedTrades'
@@ -14,7 +15,6 @@ import { TopNav, type DashboardView } from './components/TopNav'
 import { AssetHeader } from './components/AssetHeader'
 import { GenerateButton } from './components/ui/GenerateButton'
 import { GeneratedTradesGallery } from './components/GeneratedTradesGallery'
-import { AuthModal } from './components/AuthModal'
 import type { Timeframe } from './data/chartData'
 
 export type ChartMode = 'line' | 'candlestick'
@@ -24,7 +24,6 @@ function App() {
   const [chartMode, setChartMode] = useState<ChartMode>('line')
   const [timeframe, setTimeframe] = useState<Timeframe>('1h')
   const [activeTab, setActiveTab] = useState<DashboardView>('Chart')
-  const [authOpen, setAuthOpen] = useState(false)
 
   const { user, signOut } = useAuth()
   const isAuthenticated = Boolean(user)
@@ -52,8 +51,6 @@ function App() {
 
   return (
     <div className="app-backdrop flex min-h-screen items-center justify-center overflow-auto p-6 scrollbar-none">
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-
       <div className="dashboard-stage w-full max-w-[1440px]">
         <div className="dashboard-brand-mark" aria-hidden>
           <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -67,7 +64,6 @@ function App() {
           activeView={activeTab}
           onViewChange={setActiveTab}
           user={user}
-          onSignInClick={() => setAuthOpen(true)}
           onSignOut={signOut}
         />
 
@@ -198,13 +194,12 @@ function App() {
                     : 'Sign in to save trades, setups, and track win rate.'}
                 </p>
                 {!isAuthenticated && (
-                  <button
-                    type="button"
-                    onClick={() => setAuthOpen(true)}
-                    className="mt-4 rounded-full bg-okx-lime px-6 py-2.5 text-sm font-semibold text-black hover:bg-okx-lime-dim"
+                  <Link
+                    to="/signin"
+                    className="mt-4 inline-block rounded-full bg-okx-lime px-6 py-2.5 text-sm font-semibold text-black hover:bg-okx-lime-dim"
                   >
                     Sign in
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>
