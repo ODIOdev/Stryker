@@ -1,9 +1,10 @@
-import { useCallback, useState } from 'react'
-import { getPriceStats, type Timeframe } from '../data/chartData'
+import { useCallback, useEffect, useState } from 'react'
 import { CONFLUENCE_FACTORS, type TradeGrade, type TradeRating } from '../data/confluence'
 import type { Ticker } from '../data/tickers'
 import type { FactorState } from './useConfluenceScore'
 import { factorDominantBias, defaultSelectedIntervals } from '../lib/confluenceScoring'
+import type { Timeframe } from '../data/chartData'
+import { saveSetup, fetchSetups } from '../lib/api'
 
 export interface GeneratedTrade {
   id: string
@@ -36,6 +37,7 @@ export interface GenerateTradeInput {
   activeCount: number
   completeCount: number
   factors: Record<string, FactorState>
+  entryPrice: number
 }
 
 function setupBias(
@@ -94,8 +96,6 @@ function setupBias(
 }
 
 export function buildGeneratedTrade(input: GenerateTradeInput): GeneratedTrade {
-  const { price } = getPriceStats(input.ticker, input.timeframe)
-
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: Date.now(),
@@ -112,18 +112,75 @@ export function buildGeneratedTrade(input: GenerateTradeInput): GeneratedTrade {
     activeCount: input.activeCount,
     completeCount: input.completeCount,
     bias: setupBias(input.factors, input.timeframe),
-    entryPrice: price,
+    entryPrice: input.entryPrice,
   }
 }
 
-export function useGeneratedTrades() {
+export function useGeneratedTrades(isAuthenticated: boolean, onSaved?: () => void) {
   const [trades, setTrades] = useState<GeneratedTrade[]>([])
 
-  const addTrade = useCallback((input: GenerateTradeInput) => {
-    const trade = buildGeneratedTrade(input)
-    setTrades((prev) => [trade, ...prev])
-    return trade
-  }, [])
+  useEffect(() => {
+    if (!isAuthenticated) return
+    fetchSetups()
+      .then((res) => {
+        const mapped = (res.setups as Record<string, unknown>[]).map((s) => ({
+          id: String(s.id),
+          createdAt: new Date(String(s.created_at)).getTime(),
+          tickerSymbol: String(s.ticker_symbol),
+          tickerName: String(s.ticker_name ?? ''),
+          logoUrl: String(s.logo_url ?? ''),
+          timeframe: String(s.timeframe) as Timeframe,
+          score: Number(s.score),
+          maxScore: Number(s.max_score),
+          grade: String(s.grade) as TradeGrade,
+          ratingLabel: String(s.rating_label ?? ''),
+          ratingColor: String(s.rating_color ?? ''),
+          qualityPercent: Number(s.quality_pct ?? 0),
+          activeCount: Number(s.active_count ?? 0),
+          completeCount: Number(s.complete_count ?? 0),
+          bias: (String(s.bias ?? 'neutral') as 'long' | 'short' | 'neutral'),
+          entryPrice: Number(s.entry_price ?? 0),
+        }))
+        setTrades(mapped)
+      })
+      .catch(() => {})
+  }, [isAuthenticated])
+
+  const addTrade = useCallback(
+    async (input: GenerateTradeInput) => {
+      const trade = buildGeneratedTrade(input)
+      setTrades((prev) => [trade, ...prev])
+
+      if (isAuthenticated) {
+        try {
+          await saveSetup({
+            tickerSymbol: input.ticker.symbol,
+            tickerName: input.ticker.name,
+            logoUrl: input.ticker.logoUrl,
+            timeframe: input.timeframe,
+            score: input.score,
+            maxScore: input.maxScore,
+            grade: input.rating.grade,
+            ratingLabel: input.rating.label,
+            ratingColor: input.rating.color,
+            qualityPct: input.qualityPct,
+            syncPct: input.syncPct,
+            confidencePct: input.confidencePct,
+            activeCount: input.activeCount,
+            completeCount: input.completeCount,
+            bias: trade.bias,
+            entryPrice: input.entryPrice,
+          })
+          onSaved?.()
+        } catch {
+          // keep local trade even if API fails
+        }
+      }
+
+      return trade
+    },
+    [isAuthenticated, onSaved]
+  )
 
   return { trades, addTrade }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   createChart,
@@ -6,14 +6,13 @@ import {
   LineSeries,
   type IChartApi,
   type ISeriesApi,
+  type CandlestickData,
+  type LineData,
+  type Time,
 } from 'lightweight-charts'
 import type { Ticker } from '../data/tickers'
-import {
-  generateCandles,
-  candlesToLine,
-  getPriceStats,
-  type Timeframe,
-} from '../data/chartData'
+import type { Timeframe } from '../data/chartData'
+import type { PriceStats } from '../hooks/useMarketData'
 import type { ChartMode } from '../App'
 import type { TradeRating } from '../data/confluence'
 import type { TradeBias } from '../lib/confluenceScoring'
@@ -27,6 +26,10 @@ interface TradeChartProps {
   onModeChange: (mode: ChartMode) => void
   timeframe: Timeframe
   onTimeframeChange: (tf: Timeframe) => void
+  candles: CandlestickData<Time>[]
+  lineData: LineData<Time>[]
+  stats: PriceStats
+  dataSource?: string
   score: number
   scoreCeiling: number
   rating: TradeRating
@@ -90,6 +93,10 @@ export function TradeChart({
   onModeChange,
   timeframe,
   onTimeframeChange,
+  candles,
+  lineData,
+  stats,
+  dataSource,
   score,
   scoreCeiling,
   rating,
@@ -103,16 +110,6 @@ export function TradeChart({
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | null>(null)
-
-  const candles = useMemo(
-    () => generateCandles(ticker, timeframe),
-    [ticker.symbol, timeframe]
-  )
-  const lineData = useMemo(() => candlesToLine(candles), [candles])
-  const stats = useMemo(
-    () => getPriceStats(ticker, timeframe),
-    [ticker.symbol, timeframe]
-  )
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -181,6 +178,11 @@ export function TradeChart({
           <p className="text-sm text-okx-muted">
             {ticker.name}{' '}
             <span className="text-okx-subtle">{ticker.symbol.split('/')[0]}</span>
+            {dataSource && dataSource !== 'synthetic' && (
+              <span className="ml-2 rounded bg-okx-lime/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-okx-lime">
+                Live
+              </span>
+            )}
           </p>
           <div className="mt-1 flex items-baseline gap-2">
             <p className="text-2xl font-semibold tracking-tight tabular-nums">

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell, ChevronDown, Menu, Search, Zap } from 'lucide-react'
+import { Bell, ChevronDown, LogOut, Menu, Search, Zap } from 'lucide-react'
 import { TickerSearch } from './TickerSearch'
 import type { Ticker } from '../data/tickers'
+import type { User } from '@supabase/supabase-js'
 
 const NAV = ['Scoreboard', 'Markets', 'Trade', 'Portfolio']
 
@@ -13,6 +14,9 @@ interface TopNavProps {
   onTickerSelect: (t: Ticker) => void
   activeView: DashboardView
   onViewChange: (view: DashboardView) => void
+  user?: User | null
+  onSignInClick?: () => void
+  onSignOut?: () => void
 }
 
 function ScoreboardNavDropdown({
@@ -86,7 +90,17 @@ function ScoreboardNavDropdown({
   )
 }
 
-export function TopNav({ ticker, onTickerSelect, activeView, onViewChange }: TopNavProps) {
+export function TopNav({
+  ticker,
+  onTickerSelect,
+  activeView,
+  onViewChange,
+  user,
+  onSignInClick,
+  onSignOut,
+}: TopNavProps) {
+  const initials = user?.email?.slice(0, 2).toUpperCase() ?? 'TS'
+
   return (
     <header className="shrink-0 border-b border-okx-border/80 bg-okx-bg">
       <div className="flex w-full items-center gap-3 px-6 py-3 sm:gap-6">
@@ -146,12 +160,34 @@ export function TopNav({ ticker, onTickerSelect, activeView, onViewChange }: Top
           <Bell className="h-4 w-4" />
         </button>
 
-        <button
-          type="button"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-okx-elevated text-xs font-semibold text-okx-cyan"
-        >
-          TS
-        </button>
+        {user ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="hidden h-9 items-center gap-1.5 rounded-lg px-2 text-xs text-okx-muted hover:bg-okx-card hover:text-okx-text sm:flex"
+              title="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign out
+            </button>
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-okx-elevated text-xs font-semibold text-okx-cyan"
+              title={user.email ?? 'Account'}
+            >
+              {initials}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onSignInClick}
+            className="rounded-full bg-okx-lime px-4 py-2 text-xs font-semibold text-black hover:bg-okx-lime-dim"
+          >
+            Sign in
+          </button>
+        )}
       </div>
     </header>
   )

@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { TICKERS, type Ticker } from './data/tickers'
 import { useConfluenceScore } from './hooks/useConfluenceScore'
 import { useGeneratedTrades } from './hooks/useGeneratedTrades'
+import { useMarketData } from './hooks/useMarketData'
+import { useAuth } from './hooks/useAuth'
+import { useUserStats } from './hooks/useUserStats'
 import { TradeChart } from './components/TradeChart'
 import { ConfluenceScoreboard } from './components/ConfluenceScoreboard'
 import { SetupScoreCard } from './components/SetupScoreCard'
@@ -11,6 +14,7 @@ import { TopNav, type DashboardView } from './components/TopNav'
 import { AssetHeader } from './components/AssetHeader'
 import { GenerateButton } from './components/ui/GenerateButton'
 import { GeneratedTradesGallery } from './components/GeneratedTradesGallery'
+import { AuthModal } from './components/AuthModal'
 import type { Timeframe } from './data/chartData'
 
 export type ChartMode = 'line' | 'candlestick'
@@ -20,8 +24,14 @@ function App() {
   const [chartMode, setChartMode] = useState<ChartMode>('line')
   const [timeframe, setTimeframe] = useState<Timeframe>('1h')
   const [activeTab, setActiveTab] = useState<DashboardView>('Chart')
+  const [authOpen, setAuthOpen] = useState(false)
+
+  const { user, signOut } = useAuth()
+  const isAuthenticated = Boolean(user)
+  const { stats, refresh: refreshStats } = useUserStats(isAuthenticated)
   const confluence = useConfluenceScore(timeframe)
-  const { trades: generatedTrades, addTrade } = useGeneratedTrades()
+  const market = useMarketData(ticker, timeframe)
+  const { trades: generatedTrades, addTrade } = useGeneratedTrades(isAuthenticated, refreshStats)
 
   const handleGenerate = () => {
     addTrade({
@@ -36,11 +46,14 @@ function App() {
       activeCount: confluence.activeCount,
       completeCount: confluence.completeCount,
       factors: confluence.factors,
+      entryPrice: market.stats.price,
     })
   }
 
   return (
     <div className="app-backdrop flex min-h-screen items-center justify-center overflow-auto p-6 scrollbar-none">
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+
       <div className="dashboard-stage">
         <div className="dashboard-brand-mark" aria-hidden>
           <svg viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -53,6 +66,9 @@ function App() {
           onTickerSelect={setTicker}
           activeView={activeTab}
           onViewChange={setActiveTab}
+          user={user}
+          onSignInClick={() => setAuthOpen(true)}
+          onSignOut={signOut}
         />
 
         <main className="scrollbar-none flex min-h-0 flex-1 flex-col gap-5 overflow-x-hidden overflow-y-auto px-6 py-5">
@@ -74,7 +90,7 @@ function App() {
                 <GenerateButton onClick={handleGenerate} />
               </div>
 
-              <StatCardsRow />
+              <StatCardsRow stats={stats} isAuthenticated={isAuthenticated} />
 
               <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-4">
                 <section
@@ -87,6 +103,10 @@ function App() {
                     onModeChange={setChartMode}
                     timeframe={timeframe}
                     onTimeframeChange={setTimeframe}
+                    candles={market.candles}
+                    lineData={market.lineData}
+                    stats={market.stats}
+                    dataSource={market.source}
                     score={confluence.score}
                     scoreCeiling={confluence.scoreCeiling}
                     rating={confluence.rating}
@@ -172,13 +192,20 @@ function App() {
           {activeTab === 'Journal' && (
             <div className="flex items-center justify-center py-8">
               <div className="w-full max-w-lg rounded-2xl border border-okx-border bg-okx-card p-8 text-center">
-                <p className="text-okx-muted">Trade journal coming soon.</p>
-                <button
-                  type="button"
-                  className="mt-4 rounded-full bg-okx-lime px-6 py-2.5 text-sm font-semibold text-black hover:bg-okx-lime-dim"
-                >
-                  Log first trade
-                </button>
+                <p className="text-okx-muted">
+                  {isAuthenticated
+                    ? 'Trade journal is synced to your account. Log trades from generated setups.'
+                    : 'Sign in to save trades, setups, and track win rate.'}
+                </p>
+                {!isAuthenticated && (
+                  <button
+                    type="button"
+                    onClick={() => setAuthOpen(true)}
+                    className="mt-4 rounded-full bg-okx-lime px-6 py-2.5 text-sm font-semibold text-black hover:bg-okx-lime-dim"
+                  >
+                    Sign in
+                  </button>
+                )}
               </div>
             </div>
           )}
