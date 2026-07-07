@@ -32,12 +32,12 @@ const TIMEFRAME_CONFIG: Record<
   string,
   { resolution: string; count: number; intervalSec: number; aggregate?: number }
 > = {
-  '5m': { resolution: '5', count: 120, intervalSec: 300 },
-  '15m': { resolution: '15', count: 96, intervalSec: 900 },
-  '30m': { resolution: '30', count: 96, intervalSec: 1800 },
-  '1h': { resolution: '60', count: 72, intervalSec: 3600 },
-  '4h': { resolution: '60', count: 90 * 4, intervalSec: 14400, aggregate: 4 },
-  '1D': { resolution: 'D', count: 90, intervalSec: 86400 },
+  '5m': { resolution: '5', count: 500, intervalSec: 300 },
+  '15m': { resolution: '15', count: 400, intervalSec: 900 },
+  '30m': { resolution: '30', count: 400, intervalSec: 1800 },
+  '1h': { resolution: '60', count: 500, intervalSec: 3600 },
+  '4h': { resolution: '60', count: 500 * 4, intervalSec: 14400, aggregate: 4 },
+  '1D': { resolution: 'D', count: 500, intervalSec: 86400 },
 }
 
 const COINGECKO_IDS: Record<string, string> = {
@@ -214,12 +214,12 @@ async function fetchFinnhubCandles(
 }
 
 const YAHOO_TIMEFRAMES: Record<string, { interval: string; range: string }> = {
-  '5m': { interval: '5m', range: '5d' },
-  '15m': { interval: '15m', range: '5d' },
-  '30m': { interval: '30m', range: '5d' },
-  '1h': { interval: '1h', range: '1mo' },
-  '4h': { interval: '1h', range: '3mo' },
-  '1D': { interval: '1d', range: '3mo' },
+  '5m': { interval: '5m', range: '1mo' },
+  '15m': { interval: '15m', range: '3mo' },
+  '30m': { interval: '30m', range: '6mo' },
+  '1h': { interval: '1h', range: '2y' },
+  '4h': { interval: '1h', range: '2y' },
+  '1D': { interval: '1d', range: '5y' },
 }
 
 async function fetchYahooBars(

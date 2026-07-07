@@ -55,10 +55,28 @@ const chartOptions = {
     horzLines: { color: '#1a1a1a' },
   },
   rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.12, bottom: 0.05 } },
-  timeScale: { borderVisible: false, timeVisible: true, secondsVisible: false },
+  timeScale: {
+    borderVisible: false,
+    timeVisible: true,
+    secondsVisible: false,
+    rightOffset: 8,
+    fixLeftEdge: false,
+    fixRightEdge: false,
+  },
   crosshair: {
     vertLine: { color: '#4da3ff30', labelBackgroundColor: '#141414' },
     horzLine: { color: '#2dd4bf30', labelBackgroundColor: '#141414' },
+  },
+  handleScroll: {
+    mouseWheel: true,
+    pressedMouseMove: true,
+    horzTouchDrag: true,
+    vertTouchDrag: false,
+  },
+  handleScale: {
+    axisPressedMouseMove: true,
+    mouseWheel: true,
+    pinch: true,
   },
 }
 
@@ -110,6 +128,9 @@ export function TradeChart({
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | ISeriesApi<'Line'> | null>(null)
+  const viewKeyRef = useRef('')
+
+  const viewKey = `${ticker.symbol}:${timeframe}:${mode}`
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -132,6 +153,7 @@ export function TradeChart({
       chart.remove()
       chartRef.current = null
       seriesRef.current = null
+      viewKeyRef.current = ''
     }
   }, [])
 
@@ -139,23 +161,42 @@ export function TradeChart({
     const chart = chartRef.current
     if (!chart) return
 
+    viewKeyRef.current = ''
     if (seriesRef.current) {
       chart.removeSeries(seriesRef.current)
       seriesRef.current = null
     }
 
+    const series =
+      mode === 'candlestick'
+        ? chart.addSeries(CandlestickSeries, candleStyle)
+        : chart.addSeries(LineSeries, lineStyle)
+    seriesRef.current = series
+  }, [mode])
+
+  useEffect(() => {
+    const chart = chartRef.current
+    const series = seriesRef.current
+    if (!chart || !series || candles.length === 0) return
+
+    const isNewView = viewKeyRef.current !== viewKey
+    viewKeyRef.current = viewKey
+
+    const timeScale = chart.timeScale()
+    const visibleRange = isNewView ? null : timeScale.getVisibleLogicalRange()
+
     if (mode === 'candlestick') {
-      const series = chart.addSeries(CandlestickSeries, candleStyle)
-      series.setData(candles)
-      seriesRef.current = series
+      ;(series as ISeriesApi<'Candlestick'>).setData(candles)
     } else {
-      const series = chart.addSeries(LineSeries, lineStyle)
-      series.setData(lineData)
-      seriesRef.current = series
+      ;(series as ISeriesApi<'Line'>).setData(lineData)
     }
 
-    chart.timeScale().fitContent()
-  }, [mode, candles, lineData])
+    if (isNewView || !visibleRange) {
+      timeScale.fitContent()
+    } else {
+      timeScale.setVisibleLogicalRange(visibleRange)
+    }
+  }, [viewKey, mode, candles, lineData])
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
